@@ -1,359 +1,212 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CuRe Coin Flip</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CuRe Coin Flip</title>
 
-  <style>
-    :root{
-      --bg:#0b0b0b;
-      --fg:#ffffff;
-      --muted:#a8a8a8;
+<style>
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:#0b0b0b;
+  color:white;
+  font-family:Arial, Helvetica, sans-serif;
+  text-align:center;
+}
 
-      --coin-size:230px;
-      --coin-thickness:22px; /* try 22px for thicker */
-    }
+h1{margin-bottom:5px;}
+p{opacity:.7;}
 
-    *{ box-sizing:border-box; }
+.scene{
+  perspective:1000px;
+  width:240px;
+  height:240px;
+  margin:30px 0;
+}
 
-    body{
-      margin:0;
-      min-height:100vh;
-      display:grid;
-      place-items:center;
-      background: radial-gradient(ellipse at 50% 30%, #151515 0%, var(--bg) 55%, #000 100%);
-      color:var(--fg);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    }
+.coin{
+  width:100%;
+  height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition:transform 2s ease-in-out;
+}
 
-    .wrap{
-      width:min(900px,92vw);
-      display:grid;
-      justify-items:center;
-      gap:18px;
-      padding:28px 0 40px;
-      text-align:center;
-    }
+.face{
+  position:absolute;
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  backface-visibility:hidden;
+}
 
-    .title{ font-size:clamp(18px,3vw,24px); margin:0; letter-spacing:.02em; }
-    .sub{ margin:0; color:var(--muted); font-size:14px; }
+/* HEADS - WHITE */
+.heads{
+  background:#ffffff;
+  transform:rotateY(0deg) translateZ(10px);
+}
 
-    .stage{
-      perspective:1200px;
-      width:var(--coin-size);
-      height:var(--coin-size);
-      display:grid;
-      place-items:center;
-      margin-top:8px;
-    }
+/* TAILS - BLACK */
+.tails{
+  background:#000000;
+  transform:rotateY(180deg) translateZ(10px);
+}
 
-    .coin{
-      width:100%;
-      height:100%;
-      position:relative;
-      transform-style:preserve-3d;
-      transform: rotateY(0deg);
-      transition: transform 1.9s cubic-bezier(.2,.8,.2,1);
-      filter: drop-shadow(0 20px 30px rgba(0,0,0,.60));
-    }
+/* Fix mirrored logo */
+.tails img{
+  transform:scaleX(-1);
+}
 
-    /* Base face */
-    .face{
-      position:absolute;
-      inset:0;
-      border-radius:50%;
-      display:grid;
-      place-items:center;
-      overflow:hidden;
-      backface-visibility:hidden;
-      border:2px solid rgba(255,255,255,.18);
-      transition: box-shadow .25s ease;
-    }
+.face img{
+  width:70%;
+}
 
-    /* HEADS (FRONT): WHITE background */
-    .face.heads{
-      background:#ffffff;
-      transform: translateZ(calc(var(--coin-thickness) / 2));
-    }
+.glow-white{
+  animation:pulseWhite 1.6s infinite;
+}
 
-    /* TAILS (BACK): BLACK background */
-    .face.tails{
-      background:#000000;
-      transform: rotateY(180deg) translateZ(calc(var(--coin-thickness) / 2));
-    }
+.glow-blue{
+  animation:pulseBlue 1.6s infinite;
+}
 
-    .logo{
-      width:70%;
-      height:70%;
-      object-fit:contain;
-      user-select:none;
-      -webkit-user-drag:none;
-    }
+@keyframes pulseWhite{
+  0%{box-shadow:0 0 10px rgba(255,255,255,.6);}
+  50%{box-shadow:0 0 40px rgba(255,255,255,1);}
+  100%{box-shadow:0 0 10px rgba(255,255,255,.6);}
+}
 
-    /* Back face is rotated 180deg, so the image appears mirrored.
-       Flip it back so it reads normally. */
-    .face.tails .logo{
-      transform: scaleX(-1);
-    }
+@keyframes pulseBlue{
+  0%{box-shadow:0 0 10px rgba(0,200,255,.6);}
+  50%{box-shadow:0 0 40px rgba(0,200,255,1);}
+  100%{box-shadow:0 0 10px rgba(0,200,255,.6);}
+}
 
-    /* 3D edge ring */
-    .edge{
-      position:absolute;
-      inset:0;
-      border-radius:50%;
-      transform-style:preserve-3d;
-      pointer-events:none;
-    }
+button{
+  margin:5px;
+  padding:10px 15px;
+  border-radius:8px;
+  border:1px solid #444;
+  background:#111;
+  color:white;
+  cursor:pointer;
+}
 
-    .edge::before{
-      content:"";
-      position:absolute;
-      left:50%;
-      top:50%;
-      width: calc(var(--coin-size) - 10px);
-      height: calc(var(--coin-size) - 10px);
-      border-radius:50%;
-      transform: translate(-50%, -50%) rotateX(90deg);
-      box-shadow:
-        0 0 0 calc(var(--coin-thickness) / 2) rgba(255,255,255,.18) inset,
-        0 0 0 calc(var(--coin-thickness)) rgba(0,0,0,.55) inset;
-      background:
-        repeating-linear-gradient(
-          90deg,
-          rgba(255,255,255,.25) 0px,
-          rgba(255,255,255,.25) 2px,
-          rgba(255,255,255,.13) 3px,
-          rgba(255,255,255,.13) 6px
-        );
-      opacity:.95;
-      filter: blur(.2px);
-    }
-
-    /* ---- PULSE GLOWS (visible) ---- */
-    @keyframes pulseWhite {
-      0% {
-        box-shadow:
-          0 0 10px rgba(255,255,255,.65),
-          0 0 26px rgba(255,255,255,.35),
-          0 0 50px rgba(255,255,255,.15);
-      }
-      50% {
-        box-shadow:
-          0 0 22px rgba(255,255,255,.95),
-          0 0 55px rgba(255,255,255,.60),
-          0 0 110px rgba(255,255,255,.25);
-      }
-      100% {
-        box-shadow:
-          0 0 10px rgba(255,255,255,.65),
-          0 0 26px rgba(255,255,255,.35),
-          0 0 50px rgba(255,255,255,.15);
-      }
-    }
-
-    @keyframes pulseBlue {
-      0% {
-        box-shadow:
-          0 0 10px rgba(0,190,255,.60),
-          0 0 26px rgba(0,190,255,.32),
-          0 0 50px rgba(0,190,255,.14);
-      }
-      50% {
-        box-shadow:
-          0 0 22px rgba(0,190,255,.95),
-          0 0 55px rgba(0,190,255,.55),
-          0 0 110px rgba(0,190,255,.22);
-      }
-      100% {
-        box-shadow:
-          0 0 10px rgba(0,190,255,.60),
-          0 0 26px rgba(0,190,255,.32),
-          0 0 50px rgba(0,190,255,.14);
-      }
-    }
-
-    .face.glow-heads{ animation: pulseWhite 1.6s infinite ease-in-out; }
-    .face.glow-tails{ animation: pulseBlue  1.6s infinite ease-in-out; }
-
-    .btns{
-      display:flex;
-      gap:10px;
-      margin-top:6px;
-      flex-wrap:wrap;
-      justify-content:center;
-    }
-
-    button{
-      appearance:none;
-      border:1px solid rgba(255,255,255,.18);
-      background:rgba(255,255,255,.06);
-      color:var(--fg);
-      padding:10px 14px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:600;
-      letter-spacing:.02em;
-    }
-    button:hover{ background:rgba(255,255,255,.10); border-color:rgba(255,255,255,.28); }
-    button:disabled{ opacity:.55; cursor:not-allowed; }
-
-    .result{ min-height:22px; margin:6px 0 0; font-size:15px; color:var(--muted); }
-    .tag{ margin-top:8px; font-size:12px; color:rgba(255,255,255,.45); }
-  </style>
+button:hover{
+  background:#222;
+}
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <h1 class="title">CuRe Clan — Tournament Coin Flip</h1>
-    <p class="sub">✅ UPDATE TEST — if you see this, the site updated</p>
 
-    <div class="stage">
-      <div class="coin" id="coin">
-        <!-- FRONT (HEADS): white bg + black logo -->
-        <div class="face heads" id="headsFace">
-          <img class="logo" src="cr-black.png" alt="CR Black Logo">
-        </div>
+<h1>CuRe Clan — Tournament Coin Flip</h1>
+<p>Heads = White coin + Black CR • Tails = Black coin + White CR</p>
 
-        <!-- BACK (TAILS): black bg + white logo -->
-        <div class="face tails" id="tailsFace">
-          <img class="logo" src="cr-white.png" alt="CR White Logo">
-        </div>
-
-        <div class="edge"></div>
-      </div>
+<div class="scene">
+  <div class="coin" id="coin">
+    <div class="face heads" id="headsFace">
+      <img src="cr-black.png">
     </div>
 
-    <div class="btns">
-      <button id="flipBtn">Flip</button>
-      <button id="copyBtn">Copy Link</button>
-      <button id="resetBtn">Reset</button>
+    <div class="face tails" id="tailsFace">
+      <img src="cr-white.png">
     </div>
-
-    <div class="result" id="result">Ready.</div>
-    <div class="tag">Official CuRe Clan 50/50 tournament coin flip.</div>
   </div>
+</div>
 
-  <script>
-    const coin = document.getElementById("coin");
-    const flipBtn = document.getElementById("flipBtn");
-    const copyBtn = document.getElementById("copyBtn");
-    const resetBtn = document.getElementById("resetBtn");
-    const result = document.getElementById("result");
-    const headsFace = document.getElementById("headsFace");
-    const tailsFace = document.getElementById("tailsFace");
+<button onclick="flipCoin()">Flip</button>
+<button onclick="resetCoin()">Reset</button>
 
-    let spinning = false;
-    let spinCount = 0;
+<p id="result">Ready.</p>
 
-    // ---- Sound (no files needed) ----
-    let audioCtx;
-    function getAudioCtx(){
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      return audioCtx;
+<script>
+let audioCtx;
+
+function getAudio(){
+  if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playWhoosh(){
+  const ctx=getAudio();
+  const buffer=ctx.createBuffer(1,ctx.sampleRate,ctx.sampleRate);
+  const data=buffer.getChannelData(0);
+  for(let i=0;i<data.length;i++){
+    data[i]=(Math.random()*2-1)*0.4;
+  }
+  const source=ctx.createBufferSource();
+  source.buffer=buffer;
+  const gain=ctx.createGain();
+  gain.gain.setValueAtTime(0.0001,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.3,ctx.currentTime+.1);
+  gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+1);
+  source.connect(gain).connect(ctx.destination);
+  source.start();
+}
+
+function playClink(){
+  const ctx=getAudio();
+  const osc=ctx.createOscillator();
+  const gain=ctx.createGain();
+  osc.type="triangle";
+  osc.frequency.setValueAtTime(900,ctx.currentTime);
+  gain.gain.setValueAtTime(0.0001,ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.3,ctx.currentTime+.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+.15);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime+.15);
+}
+
+let spin=0;
+
+function flipCoin(){
+  const ctx=getAudio();
+  if(ctx.state==="suspended") ctx.resume();
+
+  const coin=document.getElementById("coin");
+  const heads=document.getElementById("headsFace");
+  const tails=document.getElementById("tailsFace");
+  const result=document.getElementById("result");
+
+  heads.classList.remove("glow-white");
+  tails.classList.remove("glow-blue");
+
+  playWhoosh();
+
+  const outcome=Math.random()<0.5?"heads":"tails";
+  spin+=720;
+  if(outcome==="tails") spin+=180;
+
+  coin.style.transform="rotateY("+spin+"deg)";
+
+  setTimeout(()=>{
+    playClink();
+    result.textContent="Result: "+outcome.toUpperCase()+" ✅";
+
+    if(outcome==="heads"){
+      heads.classList.add("glow-white");
+    }else{
+      tails.classList.add("glow-blue");
     }
+  },2000);
+}
 
-    function playWhoosh(durationMs=1000){
-      const ctx = getAudioCtx();
-      const dur = durationMs / 1000;
+function resetCoin(){
+  document.getElementById("coin").style.transform="rotateY(0deg)";
+  document.getElementById("headsFace").classList.remove("glow-white");
+  document.getElementById("tailsFace").classList.remove("glow-blue");
+  document.getElementById("result").textContent="Ready.";
+}
+</script>
 
-      const bufferSize = Math.floor(ctx.sampleRate * dur);
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i=0;i<bufferSize;i++) data[i] = (Math.random() * 2 - 1) * 0.35;
-
-      const noise = ctx.createBufferSource();
-      noise.buffer = buffer;
-
-      const filter = ctx.createBiquadFilter();
-      filter.type = "bandpass";
-      filter.frequency.setValueAtTime(700, ctx.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(1400, ctx.currentTime + dur);
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.20, ctx.currentTime + 0.06);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
-
-      noise.connect(filter).connect(gain).connect(ctx.destination);
-      noise.start();
-      noise.stop(ctx.currentTime + dur);
-    }
-
-    function playClink(){
-      const ctx = getAudioCtx();
-      const t = ctx.currentTime;
-
-      const osc = ctx.createOscillator();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(880, t);
-      osc.frequency.exponentialRampToValueAtTime(520, t + 0.08);
-
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
-
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.16);
-    }
-
-    function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
-
-    function clearGlow(){
-      headsFace.classList.remove("glow-heads");
-      tailsFace.classList.remove("glow-tails");
-    }
-
-    flipBtn.addEventListener("click", async () => {
-      if (spinning) return;
-
-      const ctx = getAudioCtx();
-      if (ctx.state === "suspended") await ctx.resume();
-
-      spinning = true;
-      flipBtn.disabled = true;
-      clearGlow();
-
-      const outcome = Math.random() < 0.5 ? "heads" : "tails";
-
-      result.textContent = "Flipping...";
-      playWhoosh(1100);
-
-      // Lots of spins; end on correct side.
-      const baseSpins = 7;
-      spinCount += 1;
-      const extra = baseSpins + (spinCount % 3);
-      const endDeg = (extra * 360) + (outcome === "tails" ? 180 : 0);
-      coin.style.transform = `rotateY(${endDeg}deg)`;
-
-      setTimeout(() => {
-        playClink();
-        result.textContent = `Result: ${cap(outcome)} ✅`;
-
-        if (outcome === "heads") headsFace.classList.add("glow-heads");
-        else tailsFace.classList.add("glow-tails");
-
-        spinning = false;
-        flipBtn.disabled = false;
-      }, 2000);
-    });
-
-    copyBtn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(location.href);
-        result.textContent = "Link copied ✅";
-      } catch {
-        result.textContent = "Couldn’t copy — copy the URL manually.";
-      }
-    });
-
-    resetBtn.addEventListener("click", () => {
-      coin.style.transform = "rotateY(0deg)";
-      clearGlow();
-      result.textContent = "Ready.";
-    });
-  </script>
 </body>
 </html>
