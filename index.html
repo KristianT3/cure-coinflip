@@ -143,9 +143,10 @@
     -webkit-user-drag:none;
   }
 
-  /* Fix back logo reading reversed: cancel the face rotation */
+  /* ✅ FIX: Do NOT rotate the tails image.
+     The face itself is already rotated; extra transforms can cause “double-flip” looking inverted. */
   .tails img{
-    transform: rotateY(180deg);
+    transform:none;
   }
 
   /* 3D edge */
@@ -231,15 +232,17 @@
     font-size:12px;
   }
 
-  /* Winner flash overlay */
+  /* ✅ Popup moved near bottom so it doesn’t cover the logo */
   .flash{
     position:fixed;
-    inset:0;
+    left:0;
+    right:0;
+    bottom:90px;   /* move up/down here */
     display:grid;
     place-items:center;
     pointer-events:none;
     opacity:0;
-    transform: translateY(8px) scale(.98);
+    transform: translateY(12px) scale(.98);
     transition: opacity .15s ease, transform .15s ease;
     z-index:10;
   }
@@ -257,13 +260,12 @@
     background: rgba(0,0,0,.55);
     backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    transform:none !important; /* ✅ prevents any accidental inversion */
   }
   .pill.heads{
-    color:#fff;
     box-shadow: 0 0 24px rgba(255,255,255,.35), 0 10px 30px rgba(0,0,0,.45);
   }
   .pill.tails{
-    color:#fff;
     box-shadow: 0 0 24px rgba(0,200,255,.35), 0 10px 30px rgba(0,0,0,.45);
   }
 
@@ -280,7 +282,6 @@
     animation: shake .22s linear 1;
   }
 
-  /* Respect reduced motion */
   @media (prefers-reduced-motion: reduce){
     body::before{ animation:none; }
     .coin{ transition:none; }
@@ -332,7 +333,7 @@
   const flash = document.getElementById("flash");
   const flashPill = document.getElementById("flashPill");
 
-  // ---- Sound (no files needed) ----
+  // ---- Sound ----
   let audioCtx;
   function ctx(){
     if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
