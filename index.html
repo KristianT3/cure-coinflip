@@ -32,7 +32,13 @@
     overflow:hidden;
   }
 
-  /* Diagonal watermark overlay (whole page, not coin) */
+  /* Watermark drift animation */
+  @keyframes driftLeft {
+    0%   { background-position: 0px 0px; }
+    100% { background-position: -900px 0px; }
+  }
+
+  /* Diagonal CR watermark overlay (whole page) */
   body::before{
     content:"";
     position:fixed;
@@ -40,13 +46,15 @@
     background-image: url("cr-white.png");
     background-size: 140px 140px;
     background-repeat: repeat;
+    background-position: 0 0;
     opacity: .06;
     transform: rotate(-25deg);
     filter: blur(.2px);
     pointer-events:none;
+    animation: driftLeft 18s linear infinite;
   }
 
-  /* Subtle diagonal “arrow” stripes behind everything */
+  /* Subtle diagonal stripe overlay */
   body::after{
     content:"";
     position:fixed;
@@ -127,7 +135,6 @@
     transform: rotateY(180deg) translateZ(calc(var(--thickness)/2));
   }
 
-  /* Logos */
   .face img{
     width:70%;
     height:70%;
@@ -136,9 +143,7 @@
     -webkit-user-drag:none;
   }
 
-  /* IMPORTANT FIX:
-     Back face is rotated 180deg, so the image appears mirrored.
-     Rotating the image 180deg in Y cancels that mirror correctly. */
+  /* Fix back logo reading reversed: cancel the face rotation */
   .tails img{
     transform: rotateY(180deg);
   }
@@ -174,7 +179,7 @@
     opacity:.95;
   }
 
-  /* Winner glow (pulse) */
+  /* Winner glow pulse */
   @keyframes pulseWhite{
     0%{ box-shadow: 0 0 12px rgba(255,255,255,.55), 0 0 28px rgba(255,255,255,.25); }
     50%{ box-shadow: 0 0 30px rgba(255,255,255,.95), 0 0 80px rgba(255,255,255,.45); }
@@ -225,10 +230,70 @@
     color:rgba(255,255,255,.45);
     font-size:12px;
   }
+
+  /* Winner flash overlay */
+  .flash{
+    position:fixed;
+    inset:0;
+    display:grid;
+    place-items:center;
+    pointer-events:none;
+    opacity:0;
+    transform: translateY(8px) scale(.98);
+    transition: opacity .15s ease, transform .15s ease;
+    z-index:10;
+  }
+  .flash.show{
+    opacity:1;
+    transform: translateY(0) scale(1);
+  }
+  .flash .pill{
+    padding:12px 18px;
+    border-radius:999px;
+    font-weight:900;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    border:1px solid rgba(255,255,255,.25);
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  }
+  .pill.heads{
+    color:#fff;
+    box-shadow: 0 0 24px rgba(255,255,255,.35), 0 10px 30px rgba(0,0,0,.45);
+  }
+  .pill.tails{
+    color:#fff;
+    box-shadow: 0 0 24px rgba(0,200,255,.35), 0 10px 30px rgba(0,0,0,.45);
+  }
+
+  /* Subtle camera shake */
+  @keyframes shake {
+    0%{ transform: translate(0,0); }
+    20%{ transform: translate(-2px,1px); }
+    40%{ transform: translate(2px,-1px); }
+    60%{ transform: translate(-1px,-2px); }
+    80%{ transform: translate(1px,2px); }
+    100%{ transform: translate(0,0); }
+  }
+  .shake{
+    animation: shake .22s linear 1;
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    body::before{ animation:none; }
+    .coin{ transition:none; }
+    .glow-heads,.glow-tails{ animation:none; }
+  }
 </style>
 </head>
 
 <body>
+  <div class="flash" id="flash">
+    <div class="pill" id="flashPill">HEADS</div>
+  </div>
+
   <div class="wrap">
     <h1>CuRe Clan Coin Flip</h1>
     <p class="sub">Official tournament 50/50</p>
@@ -249,7 +314,6 @@
 
     <div class="btns">
       <button id="flipBtn">Flip</button>
-      <button id="copyBtn">Copy Link</button>
       <button id="resetBtn">Reset</button>
     </div>
 
@@ -262,9 +326,11 @@
   const headsFace = document.getElementById("headsFace");
   const tailsFace = document.getElementById("tailsFace");
   const flipBtn = document.getElementById("flipBtn");
-  const copyBtn = document.getElementById("copyBtn");
   const resetBtn = document.getElementById("resetBtn");
   const result = document.getElementById("result");
+
+  const flash = document.getElementById("flash");
+  const flashPill = document.getElementById("flashPill");
 
   // ---- Sound (no files needed) ----
   let audioCtx;
@@ -314,8 +380,15 @@
     tailsFace.classList.remove("glow-tails");
   }
 
-  // ✅ Accurate flip math: every flip sets an absolute target angle.
-  // No drifting, no wrong labels.
+  function showFlash(outcome){
+    flashPill.textContent = outcome.toUpperCase();
+    flashPill.classList.remove("heads","tails");
+    flashPill.classList.add(outcome);
+    flash.classList.add("show");
+    setTimeout(()=> flash.classList.remove("show"), 650);
+  }
+
+  // Accurate flip math (no drift)
   let flipCount = 0;
   let busy = false;
 
@@ -335,13 +408,17 @@
     whoosh();
 
     flipCount++;
-    const spins = 6 + (flipCount % 3); // slight variety
+    const spins = 6 + (flipCount % 3);
     const target = (spins * 360) + (outcome === "tails" ? 180 : 0);
     coin.style.transform = `rotateY(${target}deg)`;
 
     setTimeout(() => {
       clink();
+      coin.classList.add("shake");
+      setTimeout(()=>coin.classList.remove("shake"), 250);
+
       result.textContent = `Result: ${outcome.toUpperCase()} ✅`;
+      showFlash(outcome);
 
       if (outcome === "heads") headsFace.classList.add("glow-heads");
       else tailsFace.classList.add("glow-tails");
@@ -358,15 +435,6 @@
     flipCount = 0;
     busy = false;
     flipBtn.disabled = false;
-  });
-
-  copyBtn.addEventListener("click", async () => {
-    try{
-      await navigator.clipboard.writeText(location.href);
-      result.textContent = "Link copied ✅";
-    }catch{
-      result.textContent = "Copy failed — copy the URL manually.";
-    }
   });
 </script>
 
